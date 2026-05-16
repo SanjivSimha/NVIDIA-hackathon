@@ -9,7 +9,8 @@ function totalUnits(buckets: any[] = []) {
 export function InventoryPanel({ state, kpis }: { state?: AnyRecord; kpis?: AnyRecord }) {
   const nodeEntries = Object.entries(state?.nodes || state?.warehouses || {}).filter(([, node]: [string, any]) => node.inventory);
   return (
-    <SectionCard title="Inventory">
+    <SectionCard title="Inventory" subtitle="On-hand units by facility, product, and age bucket.">
+      {nodeEntries.length === 0 ? <p className="text-sm text-slate-400">No inventory data available.</p> : (
       <div className="grid gap-3 md:grid-cols-2">
         {nodeEntries.map(([nodeId, node]: [string, any]) => (
           <div key={nodeId} className="rounded-md border border-line bg-command p-3">
@@ -28,6 +29,7 @@ export function InventoryPanel({ state, kpis }: { state?: AnyRecord; kpis?: AnyR
           </div>
         ))}
       </div>
+      )}
     </SectionCard>
   );
 }

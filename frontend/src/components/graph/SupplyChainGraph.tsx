@@ -18,7 +18,7 @@ const modeColors: Record<string, string> = {
   local: "#34d399",
 };
 
-export function SupplyChainGraph({ graph, state }: { graph?: GraphResponse; state?: AnyRecord }) {
+export function SupplyChainGraph({ graph, state, className = "" }: { graph?: GraphResponse; state?: AnyRecord; className?: string }) {
   const normalized = useMemo(() => normalizeGraph(graph, state), [graph, state]);
   const nodes: Node[] = useMemo(() => {
     const tierCounts: Record<number, number> = {};
@@ -50,16 +50,24 @@ export function SupplyChainGraph({ graph, state }: { graph?: GraphResponse; stat
   }), [normalized.edges]);
 
   return (
-    <SectionCard title="Supply Chain Graph" subtitle="Green nodes are healthy, yellow nodes/edges need attention, red means critical risk. Dashed edges are delayed or inactive.">
-      <div className="h-[560px] overflow-hidden rounded-lg border border-line bg-command">
+    <SectionCard title="Live Network Flow" subtitle="Follow inventory flow from sourcing -> production -> distribution -> demand channels." className={`flex flex-col ${className}`}>
+      <div className="min-h-[460px] flex-1 overflow-hidden rounded-xl border border-slate-700/70 bg-command shadow-inner shadow-black/30">
         <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView minZoom={0.35}>
           <Background color="#24384b" gap={18} />
           <MiniMap nodeColor="#142231" maskColor="rgba(2, 6, 23, 0.72)" />
           <Controls />
         </ReactFlow>
       </div>
-      <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-400">
-        {Object.entries(modeColors).map(([mode, color]) => <span key={mode} className="inline-flex items-center gap-1"><span className="h-2 w-5 rounded" style={{ backgroundColor: color }} />{titleize(mode)}</span>)}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
+        <div className="flex flex-wrap gap-2">
+          {Object.entries(modeColors).map(([mode, color]) => (
+            <span key={mode} className="inline-flex items-center gap-1 rounded-full border border-line bg-command px-2 py-1">
+              <span className="h-2 w-4 rounded" style={{ backgroundColor: color }} />
+              {titleize(mode)}
+            </span>
+          ))}
+        </div>
+        <p className="text-slate-500">Dashed routes indicate delay or disruption.</p>
       </div>
     </SectionCard>
   );

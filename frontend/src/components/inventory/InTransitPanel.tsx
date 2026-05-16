@@ -6,8 +6,8 @@ import { StatusBadge } from "../layout/StatusBadge";
 export function InTransitPanel({ state }: { state?: AnyRecord }) {
   const shipments = state?.in_transit_shipments || [];
   return (
-    <SectionCard title="In-Transit Shipments">
-      {shipments.length === 0 ? <p className="text-sm text-slate-400">No active shipments.</p> : (
+    <SectionCard title="In-Transit Shipments" subtitle="Inventory already committed to a route.">
+      {shipments.length === 0 ? <p className="text-sm text-slate-400">No in-transit shipments.</p> : (
         <div className="space-y-2">
           {shipments.map((shipment: any) => (
             <div key={shipment.shipment_id} className="rounded-md border border-line bg-command p-3 text-sm">

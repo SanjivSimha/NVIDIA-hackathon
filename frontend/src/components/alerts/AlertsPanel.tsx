@@ -5,7 +5,7 @@ import { StatusBadge } from "../layout/StatusBadge";
 export function AlertsPanel({ kpis, alerts }: { kpis?: AnyRecord; alerts: any[] }) {
   const combined = [...(kpis?.alerts || []), ...alerts].slice(-12).reverse();
   return (
-    <SectionCard title="Alerts">
+    <SectionCard title="Alerts" subtitle="Active operational risks and warning signals.">
       {combined.length === 0 ? <p className="text-sm text-slate-400">No active alerts.</p> : (
         <div className="space-y-2">
           {combined.map((alert, index) => (

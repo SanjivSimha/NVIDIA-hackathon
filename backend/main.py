@@ -4,6 +4,8 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from agent_orchestration.router import router as agent_router
+from agent_orchestration.schemas import AgentEpisodeCreate
+from agent_orchestration.store import create_episode
 from realtime import manager as ws_manager
 from simulation.action_engine import (
     transfer_inventory,
@@ -45,6 +47,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 SIMULATION_TASK = None
+AUTO_WEEKLY_EPISODES = False
 app.include_router(agent_router, prefix="/api/agent", tags=["agent-orchestration"])
 
 
@@ -139,10 +142,37 @@ async def _background_tick_loop():
     try:
         while get_world_state()["simulation_status"] == "running":
             await asyncio.sleep(15)
-            apply_tick(get_world_state())
+            tick_result = apply_tick(get_world_state())
+            _maybe_create_weekly_episode(tick_result)
     except asyncio.CancelledError:
         get_world_state()["simulation_status"] = "stopped"
         raise
+
+
+def _maybe_create_weekly_episode(tick_result):
+    if not AUTO_WEEKLY_EPISODES:
+        return None
+    virtual_week = tick_result["virtual_week"]
+    return create_episode(
+        AgentEpisodeCreate(
+            simulation_id="default",
+            trigger={
+                "type": "auto",
+                "summary": f"Weekly agent review for virtual week {virtual_week}.",
+                "virtual_week": virtual_week,
+                "time_step": tick_result["time_step"],
+            },
+            user_preferences={
+                "profile": "balanced",
+                "weights": {
+                    "profit": 0.25,
+                    "service": 0.35,
+                    "cost": 0.25,
+                    "emissions": 0.15,
+                },
+            },
+        )
+    )
 
 
 @app.get("/")
@@ -272,7 +302,11 @@ def execute_update_lane(request: LaneUpdateRequest):
 
 @app.post("/tick")
 def tick():
-    return apply_tick(get_world_state())
+    tick_result = apply_tick(get_world_state())
+    episode = _maybe_create_weekly_episode(tick_result)
+    if episode:
+        tick_result["created_agent_episode"] = episode
+    return tick_result
 
 
 @app.post("/reset")
@@ -337,3 +371,30 @@ async def websocket_endpoint(websocket: WebSocket):
         pass
     finally:
         await ws_manager.disconnect(websocket)
+
+
+@app.post("/simulation/weekly-agent-episodes/start")
+def start_weekly_agent_episodes():
+    global AUTO_WEEKLY_EPISODES
+    AUTO_WEEKLY_EPISODES = True
+    return {
+        "success": True,
+        "auto_create_episode_each_tick": AUTO_WEEKLY_EPISODES,
+        "message": "Weekly agent episode creation enabled. Each future tick will create one review episode.",
+    }
+
+
+@app.post("/simulation/weekly-agent-episodes/stop")
+def stop_weekly_agent_episodes():
+    global AUTO_WEEKLY_EPISODES
+    AUTO_WEEKLY_EPISODES = False
+    return {
+        "success": True,
+        "auto_create_episode_each_tick": AUTO_WEEKLY_EPISODES,
+        "message": "Weekly agent episode creation disabled.",
+    }
+
+
+@app.get("/simulation/weekly-agent-episodes/status")
+def weekly_agent_episodes_status():
+    return {"auto_create_episode_each_tick": AUTO_WEEKLY_EPISODES}

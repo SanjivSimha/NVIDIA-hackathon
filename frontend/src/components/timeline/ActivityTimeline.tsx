@@ -12,8 +12,8 @@ export function ActivityTimeline({ actions, events, alerts }: { actions: any[]; 
   const icon = (type: string) => type === "action" ? <Zap className="h-4 w-4" /> : type === "alert" ? <Bell className="h-4 w-4" /> : <CalendarClock className="h-4 w-4" />;
 
   return (
-    <SectionCard title="Activity Timeline">
-      {items.length === 0 ? <p className="text-sm text-slate-400">No activity yet.</p> : (
+    <SectionCard title="Activity Timeline" subtitle="Recent ticks, actions, alerts, and simulation events.">
+      {items.length === 0 ? <p className="text-sm text-slate-400">No recent activity.</p> : (
         <div className="space-y-3">
           {items.map((item) => (
             <div key={item.id} className="flex gap-3">

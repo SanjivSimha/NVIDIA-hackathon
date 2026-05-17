@@ -7,6 +7,7 @@ from simulation.inventory_utils import (
 
 DISTRIBUTION_NODES = ["chicago_hub", "west_coast_dc"]
 PRODUCTION_NODES = ["central_factory", "co_packer_plant"]
+DEMO_PROFIT_SCALE = 0.10
 
 
 def _round_dict(values, digits=4):
@@ -130,7 +131,7 @@ def calculate_kpis(state):
     production_cost = state.get("current_week_production_cost", 0.0)
     changeover_cost = state.get("current_week_changeover_cost", 0.0)
     wastage_cost = state.get("current_week_wastage_cost", 0.0)
-    estimated_profit = (
+    raw_estimated_profit = (
         estimated_revenue
         - supplier_cost
         - production_cost
@@ -141,6 +142,7 @@ def calculate_kpis(state):
         - changeover_cost
         - wastage_cost
     )
+    estimated_profit = raw_estimated_profit * DEMO_PROFIT_SCALE
     gross_margin_per_unit_estimate = 0 if total_demand_units == 0 else estimated_profit / total_demand_units
 
     mode_shares = _mode_shares(state)
@@ -181,7 +183,7 @@ def calculate_kpis(state):
         alerts.append({"severity": "warning", "type": "supplier_risk", "message": f"Supplier risk index is {supplier_risk_index:.3f}."})
     if emissions > 1200:
         alerts.append({"severity": "warning", "type": "emissions", "message": f"Estimated weekly emissions are {emissions:.1f}."})
-    if estimated_profit < 5000:
+    if estimated_profit < 1000:
         alerts.append({"severity": "critical", "type": "profit", "message": f"Estimated profit is low at {estimated_profit:.2f}."})
     for node_id, remaining in changeover_remaining.items():
         if remaining > 0:

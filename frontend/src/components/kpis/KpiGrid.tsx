@@ -29,7 +29,7 @@ export function KpiGrid({ kpis, previousKpis }: { kpis?: AnyRecord; previousKpis
   return (
     <SectionCard title="Operations KPI Strip" subtitle="The fastest read on cost, service, inventory, and risk.">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-8">
-        <KpiCard title="Estimated Profit" value={formatCurrency(profit)} previous={delta(profit, getEstimatedProfit(previousKpis))} status={(profit ?? 0) < 5000 ? "critical" : "healthy"} />
+        <KpiCard title="Estimated Profit" value={formatCurrency(profit)} previous={delta(profit, getEstimatedProfit(previousKpis))} status={(profit ?? 0) < 1000 ? "critical" : "healthy"} />
         <KpiCard title="Service Level" value={formatPercent(service, 1)} previous={delta(service, getAverageServiceLevel(previousKpis))} status={(service ?? 1) < 0.92 ? "critical" : (service ?? 1) < 0.96 ? "warning" : "healthy"} />
         <KpiCard title="Stockout Risk" value={formatPercent(stockout, 1)} previous={delta(stockout, getAverageStockoutRisk(previousKpis))} status={(stockout ?? 0) > 0.2 ? "critical" : (stockout ?? 0) > 0.1 ? "warning" : "healthy"} />
         <KpiCard title="Transport Cost" value={formatCurrency(transport)} previous={delta(transport, getTransportCost(previousKpis))} />

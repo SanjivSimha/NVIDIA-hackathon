@@ -1,4 +1,5 @@
 import asyncio
+from copy import deepcopy
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -105,12 +106,29 @@ def _tradeoff_summary(delta):
 
 def _execute_action(action_callback):
     state = get_world_state()
+    state_before_action = deepcopy(state)
     before_kpis = calculate_kpis(state)
+    before_profit = before_kpis.get("financial", {}).get("estimated_profit")
     try:
         log_entry = action_callback(state)
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     new_kpis = _refresh_kpis(state)
+    after_profit = new_kpis.get("financial", {}).get("estimated_profit")
+    if (
+        isinstance(before_profit, (int, float))
+        and isinstance(after_profit, (int, float))
+        and after_profit <= before_profit
+    ):
+        state.clear()
+        state.update(state_before_action)
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Action rejected for demo mode: estimated_profit must improve. "
+                f"Before={before_profit}, after={after_profit}."
+            ),
+        )
     delta = _kpi_delta(before_kpis, new_kpis)
     log_entry["before_kpis"] = before_kpis
     log_entry["after_kpis"] = new_kpis
@@ -435,11 +453,11 @@ async def websocket_endpoint(websocket: WebSocket):
 @app.post("/simulation/weekly-agent-episodes/start")
 def start_weekly_agent_episodes():
     global AUTO_WEEKLY_EPISODES
-    AUTO_WEEKLY_EPISODES = True
+    AUTO_WEEKLY_EPISODES = False
     return {
         "success": True,
         "auto_create_episode_each_tick": AUTO_WEEKLY_EPISODES,
-        "message": "Weekly agent episode creation enabled. Each future tick will create one review episode.",
+        "message": "Weekly automatic episode creation is disabled for the MVP demo. Use the one-shot runner to create episodes.",
     }
 
 

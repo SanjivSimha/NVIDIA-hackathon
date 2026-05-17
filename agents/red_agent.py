@@ -19,6 +19,7 @@ from agent_common import (
 
 INTERVAL_SECONDS = int(os.environ.get("RED_INTERVAL_SECONDS", "60"))
 OPENCLAW_AGENT = os.environ.get("RED_OPENCLAW_AGENT", "red-agent")
+AUTO_CREATE_EPISODES = os.environ.get("RED_AUTO_CREATE_EPISODES", "0") == "1"
 UNFINISHED_STATUSES = {
     "active",
     "waiting_for_red_plan",
@@ -182,6 +183,10 @@ def get_episode_for_red():
     unfinished = [episode for episode in episodes if episode.get("status") in UNFINISHED_STATUSES]
     if unfinished:
         log(f"waiting: episode {unfinished[0]['id']} is still {unfinished[0].get('status')}")
+        return None
+
+    if not AUTO_CREATE_EPISODES:
+        log("waiting: no episode needs RED_PLAN; auto-create is disabled")
         return None
 
     return post("/api/agent/episodes", {

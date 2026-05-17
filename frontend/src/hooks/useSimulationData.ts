@@ -25,6 +25,7 @@ export function useSimulationData() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
   const latestKpis = useRef<AnyRecord>();
+  const latestKpiSignature = useRef<string>();
 
   const refresh = useCallback(async () => {
     const results = await Promise.all([
@@ -41,17 +42,32 @@ export function useSimulationData() {
     if (stateResult.data) setState(stateResult.data);
     if (kpisResult.data) {
       const kpiData = kpisResult.data;
-      setPreviousKpis(latestKpis.current);
-      latestKpis.current = kpiData;
+      const signature = JSON.stringify({
+        week: kpiData.virtual_week,
+        financial: kpiData.financial,
+        service: kpiData.service,
+        inventory: kpiData.inventory,
+        logistics: kpiData.logistics,
+        sourcing: kpiData.sourcing,
+      });
+      const changed = signature !== latestKpiSignature.current;
+      if (changed) {
+        setPreviousKpis(latestKpis.current);
+        latestKpis.current = kpiData;
+        latestKpiSignature.current = signature;
+      }
       setKpis(kpiData);
-      setKpiHistory((history) => [
-        ...history.slice(-39),
-        {
-          timestamp: Date.now(),
-          virtualWeek: kpiData.virtual_week ?? stateResult.data?.virtual_week ?? history.length,
-          kpis: kpiData,
-        },
-      ]);
+      setKpiHistory((history) => {
+        if (!changed && history.length > 0) return history;
+        return [
+          ...history.slice(-39),
+          {
+            timestamp: Date.now(),
+            virtualWeek: kpiData.virtual_week ?? stateResult.data?.virtual_week ?? history.length,
+            kpis: kpiData,
+          },
+        ];
+      });
     }
     if (graphResult.data) setGraph(graphResult.data);
     if (actionsResult.data) setActions(Array.isArray(actionsResult.data) ? actionsResult.data : []);
@@ -72,6 +88,12 @@ export function useSimulationData() {
 
   useEffect(() => {
     const dispose = connectRealtime((message) => {
+      if (message.type === "agent_state_reset") {
+        latestKpis.current = undefined;
+        latestKpiSignature.current = undefined;
+        setPreviousKpis(undefined);
+        setKpiHistory([]);
+      }
       if (
         message.type === "execution_applied" ||
         message.type === "state_updated" ||

@@ -20,6 +20,7 @@ from simulation.state import get_world_state
 
 
 router = APIRouter()
+FORBIDDEN_EVENT_TEXT = ("mock", "openclaw not invoked", "fallback")
 
 
 AVAILABLE_ACTION_ENDPOINTS = [
@@ -79,6 +80,17 @@ def _require_episode(episode_id: str):
     return episode
 
 
+def _contains_forbidden_text(value) -> bool:
+    if isinstance(value, str):
+        normalized = value.lower()
+        return any(token in normalized for token in FORBIDDEN_EVENT_TEXT)
+    if isinstance(value, dict):
+        return any(_contains_forbidden_text(item) for item in value.values())
+    if isinstance(value, list):
+        return any(_contains_forbidden_text(item) for item in value)
+    return False
+
+
 @router.post("/episodes")
 def create_agent_episode(request: AgentEpisodeCreate):
     return create_episode(request)
@@ -116,6 +128,15 @@ def get_agent_context(episode_id: str):
 @router.post("/events", response_model=AgentEventAccepted)
 def submit_agent_event(request: AgentEventCreate):
     _require_episode(request.episode_id)
+    if _contains_forbidden_text({
+        "title": request.title,
+        "summary": request.summary,
+        "payload": request.payload,
+    }):
+        raise HTTPException(
+            status_code=400,
+            detail="Mock/fallback agent events are disabled for the MVP demo.",
+        )
     event, next_step = add_event(request)
     return AgentEventAccepted(event=event, next_step=next_step)
 
